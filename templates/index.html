@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="AI-powered stock price trend prediction dashboard using ensemble machine learning. Predict UP or DOWN with confidence scores." />
+  <title>StockSense AI - Stock Price Trend Prediction</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
+  <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar-main" id="main-navbar">
+    <div class="container d-flex align-items-center justify-content-between">
+      <a class="navbar-brand" href="/">
+        <span class="brand-logo"><i class="bi bi-graph-up-arrow"></i></span>
+        StockSense AI
+      </a>
+      <div class="d-flex align-items-center gap-2">
+        <a class="nav-link d-none d-md-inline-block" href="#predict-section"><i class="bi bi-lightning-charge me-1"></i>Predict</a>
+        <a class="nav-link d-none d-md-inline-block" href="#chart-section"><i class="bi bi-bar-chart me-1"></i>Charts</a>
+        <a class="nav-link d-none d-md-inline-block" href="#metrics-section"><i class="bi bi-table me-1"></i>Metrics</a>
+        <span class="health-pill" id="health-status">
+          <span class="pulse-dot"></span>
+          <span id="health-text">Checking...</span>
+        </span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Loading Overlay -->
+  <div class="loading-overlay" id="loading-overlay">
+    <div class="loader"></div>
+    <div class="loading-label">Analyzing market signals...</div>
+  </div>
+
+  <div class="main-container">
+
+    <!-- Hero -->
+    <section class="hero anim-fade-up">
+      <h1>
+        <span class="gradient-text">Stock Price Trend</span><br/>Prediction Engine
+      </h1>
+      <p class="tagline">
+        5 ensemble ML models analyze OHLCV data and technical indicators to predict
+        whether stocks will go <strong>UP</strong> or <strong>DOWN</strong> next day.
+      </p>
+      <div class="pipeline-chip">
+        <i class="bi bi-arrow-repeat"></i>
+        CI/CD Pipeline &bull; Auto-trained &bull; Auto-deployed
+      </div>
+    </section>
+
+    <!-- Stat Cards -->
+    <section class="row g-3 mb-4">
+      <div class="col-6 col-md-3 anim-fade-up">
+        <div class="stat-card">
+          <div class="stat-icon-wrap icon-brand">&#x1F3AF;</div>
+          <div class="stat-value" id="stat-accuracy">{{ metrics.get('best_accuracy', '--') }}%</div>
+          <div class="stat-label">Best Accuracy</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3 anim-fade-up">
+        <div class="stat-card">
+          <div class="stat-icon-wrap icon-violet">&#x1F916;</div>
+          <div class="stat-value" id="stat-model">{{ metrics.get('best_model', '--') | truncate(14) }}</div>
+          <div class="stat-label">Best Model</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3 anim-fade-up">
+        <div class="stat-card">
+          <div class="stat-icon-wrap icon-sky">&#x1F4CA;</div>
+          <div class="stat-value">{{ metrics.get('models', {}) | length }}</div>
+          <div class="stat-label">Models Trained</div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3 anim-fade-up">
+        <div class="stat-card">
+          <div class="stat-icon-wrap icon-amber">&#x26A1;</div>
+          <div class="stat-value">10</div>
+          <div class="stat-label">Features Used</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Two-column: Form + Result -->
+    <section class="row g-4" id="predict-section">
+      <!-- Prediction Form -->
+      <div class="col-lg-7 anim-fade-up">
+        <div class="glass-card">
+          <div class="section-header">
+            <div class="icon-badge purple"><i class="bi bi-lightning-charge-fill"></i></div>
+            <div>
+              <h3>Predict Next-Day Trend</h3>
+            </div>
+          </div>
+          <form id="predict-form">
+            <div class="row g-3">
+              <div class="col-md-4 col-6">
+                <label class="form-label" for="input-Open">Open</label>
+                <input type="number" step="any" class="form-control" id="input-Open" name="Open" placeholder="150.25" required />
+              </div>
+              <div class="col-md-4 col-6">
+                <label class="form-label" for="input-High">High</label>
+                <input type="number" step="any" class="form-control" id="input-High" name="High" placeholder="155.80" required />
+              </div>
+              <div class="col-md-4 col-6">
+                <label class="form-label" for="input-Low">Low</label>
+                <input type="number" step="any" class="form-control" id="input-Low" name="Low" placeholder="148.10" required />
+              </div>
+              <div class="col-md-4 col-6">
+                <label class="form-label" for="input-Close">Close</label>
+                <input type="number" step="any" class="form-control" id="input-Close" name="Close" placeholder="153.40" required />
+              </div>
+              <div class="col-md-4 col-6">
+                <label class="form-label" for="input-Volume">Volume</label>
+                <input type="number" step="any" class="form-control" id="input-Volume" name="Volume" placeholder="5000000" required />
+              </div>
+              <div class="col-md-4 col-6">
+                <label class="form-label" for="input-SMA_10">SMA 10</label>
+                <input type="number" step="any" class="form-control" id="input-SMA_10" name="SMA_10" placeholder="151.50" required />
+              </div>
+              <div class="col-md-4 col-6">
+                <label class="form-label" for="input-SMA_50">SMA 50</label>
+                <input type="number" step="any" class="form-control" id="input-SMA_50" name="SMA_50" placeholder="149.00" required />
+              </div>
+              <div class="col-md-4 col-6">
+                <label class="form-label" for="input-RSI">RSI</label>
+                <input type="number" step="any" class="form-control" id="input-RSI" name="RSI" placeholder="55.00" required />
+              </div>
+              <div class="col-md-4 col-6">
+                <label class="form-label" for="input-MACD">MACD</label>
+                <input type="number" step="any" class="form-control" id="input-MACD" name="MACD" placeholder="1.20" required />
+              </div>
+              <div class="col-md-4 col-6">
+                <label class="form-label" for="input-Prev_Close">Prev Close</label>
+                <input type="number" step="any" class="form-control" id="input-Prev_Close" name="Prev_Close" placeholder="150.00" required />
+              </div>
+            </div>
+            <div class="d-flex gap-3 mt-4 flex-wrap">
+              <button type="submit" class="btn-predict" id="btn-predict">
+                <i class="bi bi-send-fill me-2"></i>Predict Trend
+              </button>
+              <button type="button" class="btn-reset" id="btn-reset">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Result -->
+      <div class="col-lg-5 anim-fade-up">
+        <div class="glass-card" style="min-height: 200px;">
+          <div class="section-header">
+            <div class="icon-badge green"><i class="bi bi-bullseye"></i></div>
+            <div><h3>Prediction Result</h3></div>
+          </div>
+
+          <div id="result-placeholder" class="result-placeholder">
+            <div class="placeholder-icon">&#x1F4C9;</div>
+            <p>Enter stock data and click <strong>Predict Trend</strong></p>
+          </div>
+
+          <!-- UP -->
+          <div class="result-card up" id="result-up">
+            <span class="result-icon">&#x1F4C8;</span>
+            <div class="result-label">UP Trend</div>
+            <div class="confidence-wrapper">
+              <div class="confidence-track">
+                <div class="confidence-bar" id="conf-fill-up" style="width:0%"></div>
+              </div>
+              <div class="confidence-label">Confidence: <strong id="conf-val-up">0</strong>%</div>
+            </div>
+            <div class="model-badge">Model: <strong id="model-up">--</strong></div>
+          </div>
+
+          <!-- DOWN -->
+          <div class="result-card down" id="result-down">
+            <span class="result-icon">&#x1F4C9;</span>
+            <div class="result-label">DOWN Trend</div>
+            <div class="confidence-wrapper">
+              <div class="confidence-track">
+                <div class="confidence-bar" id="conf-fill-down" style="width:0%"></div>
+              </div>
+              <div class="confidence-label">Confidence: <strong id="conf-val-down">0</strong>%</div>
+            </div>
+            <div class="model-badge">Model: <strong id="model-down">--</strong></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Charts -->
+    <section class="row g-4 mt-1" id="chart-section">
+      <div class="col-lg-6 anim-fade-up">
+        <div class="glass-card">
+          <div class="section-header">
+            <div class="icon-badge blue"><i class="bi bi-bar-chart-fill"></i></div>
+            <div><h3>Model Accuracy Comparison</h3></div>
+          </div>
+          <div class="chart-container"><canvas id="accuracyChart"></canvas></div>
+        </div>
+      </div>
+      <div class="col-lg-6 anim-fade-up">
+        <div class="glass-card">
+          <div class="section-header">
+            <div class="icon-badge amber"><i class="bi bi-trophy-fill"></i></div>
+            <div><h3>F1 Score &amp; ROC AUC</h3></div>
+          </div>
+          <div class="chart-container"><canvas id="f1RocChart"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Metrics Table -->
+    <section class="row mt-4" id="metrics-section">
+      <div class="col-12 anim-fade-up">
+        <div class="glass-card">
+          <div class="section-header">
+            <div class="icon-badge purple"><i class="bi bi-clipboard-data-fill"></i></div>
+            <div><h3>Detailed Model Metrics</h3></div>
+          </div>
+          <div class="table-responsive">
+            <table class="metrics-table" id="metrics-table">
+              <thead>
+                <tr>
+                  <th>Model</th><th>Accuracy</th><th>Precision</th>
+                  <th>Recall</th><th>F1 Score</th><th>ROC AUC</th><th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="metrics-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-inner">
+        <p><strong>StockSense AI</strong> &mdash; Flask + scikit-learn + XGBoost + Chart.js &bull; CI/CD via GitHub Actions &bull; Deployed on Render</p>
+        <p class="mt-1"><a href="https://github.com" target="_blank"><i class="bi bi-github me-1"></i>View on GitHub</a></p>
+      </div>
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script>
+    const M = {{ metrics | tojson | safe }};
+
+    // Health check
+    (async()=>{
+      try {
+        const r = await fetch('/health');
+        const d = await r.json();
+        document.getElementById('health-text').textContent = d.status==='healthy' ? 'System Online' : 'Degraded';
+      } catch { document.getElementById('health-text').textContent = 'Offline'; }
+    })();
+
+    // Metrics table
+    (function(){
+      const tb = document.getElementById('metrics-tbody');
+      if (!M.models) return;
+      for (const [n, m] of Object.entries(M.models)) {
+        const best = n === M.best_model;
+        const tr = document.createElement('tr');
+        if (best) tr.classList.add('best-row');
+        tr.innerHTML = `
+          <td><strong>${n}</strong></td>
+          <td>${m.accuracy}%</td><td>${m.precision}%</td>
+          <td>${m.recall}%</td><td>${m.f1_score}%</td>
+          <td>${typeof m.roc_auc==='number'?m.roc_auc+'%':m.roc_auc}</td>
+          <td>${best?'<span class="badge-best"><i class="bi bi-star-fill"></i> Best</span>':''}</td>`;
+        tb.appendChild(tr);
+      }
+    })();
+
+    // Charts
+    (function(){
+      if (!M.models) return;
+      const labels = Object.keys(M.models);
+      const acc = labels.map(n=>M.models[n].accuracy);
+      const f1  = labels.map(n=>M.models[n].f1_score);
+      const roc = labels.map(n=>{ const v=M.models[n].roc_auc; return typeof v==='number'?v:0; });
+      const colors = ['#6366f1','#8b5cf6','#0ea5e9','#f59e0b','#10b981'];
+      const opts = {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ labels:{ color:'#64748b', font:{family:'Plus Jakarta Sans',size:12} } } },
+        scales:{
+          x:{ ticks:{color:'#94a3b8',font:{family:'Plus Jakarta Sans',size:11}}, grid:{color:'rgba(0,0,0,0.04)'} },
+          y:{ ticks:{color:'#94a3b8',font:{family:'Plus Jakarta Sans',size:11}}, grid:{color:'rgba(0,0,0,0.04)'}, beginAtZero:false }
+        }
+      };
+      new Chart(document.getElementById('accuracyChart'),{
+        type:'bar',
+        data:{ labels, datasets:[{ label:'Accuracy (%)', data:acc, backgroundColor:colors, borderColor:colors, borderWidth:0, borderRadius:10, borderSkipped:false }] },
+        options:opts
+      });
+      new Chart(document.getElementById('f1RocChart'),{
+        type:'bar',
+        data:{ labels, datasets:[
+          { label:'F1 Score (%)', data:f1, backgroundColor:'rgba(139,92,246,0.7)', borderRadius:8 },
+          { label:'ROC AUC (%)', data:roc, backgroundColor:'rgba(14,165,233,0.7)', borderRadius:8 }
+        ]},
+        options:opts
+      });
+    })();
+
+    // Predict
+    document.getElementById('predict-form').addEventListener('submit', async(e)=>{
+      e.preventDefault();
+      const ov = document.getElementById('loading-overlay');
+      ov.classList.add('show');
+      try {
+        const res = await fetch('/predict',{method:'POST',body:new FormData(e.target)});
+        const d = await res.json();
+        ov.classList.remove('show');
+        if (d.error){ alert('Error: '+d.error); return; }
+        document.getElementById('result-placeholder').style.display='none';
+        const up=document.getElementById('result-up'), dn=document.getElementById('result-down');
+        up.classList.remove('show'); dn.classList.remove('show');
+        if (d.prediction==='UP'){
+          up.classList.add('show');
+          document.getElementById('conf-val-up').textContent=d.confidence;
+          document.getElementById('model-up').textContent=d.model_used;
+          setTimeout(()=>{ document.getElementById('conf-fill-up').style.width=d.confidence+'%'; },100);
+        } else {
+          dn.classList.add('show');
+          document.getElementById('conf-val-down').textContent=d.confidence;
+          document.getElementById('model-down').textContent=d.model_used;
+          setTimeout(()=>{ document.getElementById('conf-fill-down').style.width=d.confidence+'%'; },100);
+        }
+      } catch(err){ ov.classList.remove('show'); alert('Network error: '+err.message); }
+    });
+
+    // Reset
+    document.getElementById('btn-reset').addEventListener('click',()=>{
+      document.getElementById('predict-form').reset();
+      document.getElementById('result-up').classList.remove('show');
+      document.getElementById('result-down').classList.remove('show');
+      document.getElementById('result-placeholder').style.display='block';
+      document.getElementById('conf-fill-up').style.width='0%';
+      document.getElementById('conf-fill-down').style.width='0%';
+    });
+  </script>
+</body>
+</html>
